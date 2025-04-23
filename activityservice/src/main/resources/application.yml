@@ -2,7 +2,7 @@
 #mongo = mongodb://localhost:27017/
 spring:
   application:
-    name: activityservice
+    name: activity-service
   data:
     mongodb:
       uri: mongodb://localhost:27017/fitnessactivity
@@ -10,3 +10,8 @@ spring:
 
 server:
   port: 8082
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
