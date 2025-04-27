@@ -1,107 +1,159 @@
-# Fitness App - User Service
+# Fitness App - Backend Microservices
 
-This project contains the initial User Service for the upcoming Fitness AI application backend. Currently, it allows users to register and retrieve their basic profile information.
+This project contains the backend services for the **Fitness AI** application, designed using a microservices architecture. It includes user management, AI-powered fitness recommendations, activity tracking, centralized configuration, secure API gateway, and service discovery.
 
-## Features (Current)
+---
 
-* **User Registration:** Creates a new user profile with validation.
-* **Get User Profile:** Retrieves profile details for a registered user.
+## Architecture Overview
+
+| Service             | Description                                                                              | Technologies                             |
+|---------------------|------------------------------------------------------------------------------------------|------------------------------------------|
+| **User Service**     | Manages user registration and profile information.                                       | Java 24, Spring Boot 3.x, PostgreSQL     |
+| **AI Service**       | Generates fitness recommendations using Google Gemini API and RabbitMQ.                 | Java 24, Spring Boot 3.x, MongoDB, RabbitMQ |
+| **Activity Service** | Tracks user fitness activities.                                                          | Java 24, Spring Boot 3.x, MongoDB        |
+| **API Gateway**      | Secures and routes API requests, integrated with Keycloak for authentication (PKCE OAuth2).| Spring Cloud Gateway, Keycloak           |
+| **Config Server**    | Provides centralized configuration management for all services.                         | Spring Cloud Config Server               |
+| **Eureka Server**    | Enables service discovery and registration for microservices.                           | Spring Cloud Eureka                      |
+
+---
 
 ## Technology Stack
 
-* **Language:** Java 24
-* **Framework:** Spring Boot 3.x
-    * Spring Web (for REST APIs)
-    * Spring Data JPA (for database interaction)
-    * Spring Validation (`jakarta.validation-api` for `@Valid`)
-* **Database:** H2 (In-memory, for easy startup - configurable) / PostgreSQL (Specify if used)
-* **Build Tool:** Maven / Gradle (Specify which one)
+- **Language:** Java 24
+- **Frameworks:** Spring Boot 3.x, Spring Cloud
+- **Databases:**
+  - PostgreSQL (User Service)
+  - MongoDB (AI Service, Activity Service)
+- **Messaging:** RabbitMQ (Dockerized)
+- **Authentication & Authorization:** Keycloak (Dockerized, OAuth2 PKCE flow)
+- **Service Discovery:** Eureka Server
+- **Central Configuration:** Spring Cloud Config Server
+- **Build Tools:** Maven / Gradle
+- **Containerization:** Docker (RabbitMQ, Keycloak)
+
+---
 
 ## Prerequisites
 
-* **JDK:** Version 24 installed
-* **Maven / Gradle:** Version X.x installed
-* **Git**
+- **JDK:** Java 24
+- **Maven / Gradle:** Latest stable version
+- **Docker & Docker Compose:** Installed and running
+- **Git:** Installed
 
-## Getting Started
+---
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <your-repository-url>
-    cd <your-project-directory-name>
-    ```
+## Setup Instructions
 
-2.  **Build the service:**
-    * **Using Maven:**
-        ```bash
-        mvn clean install
-        ```
-    * **Using Gradle:**
-        ```bash
-        ./gradlew build
-        ```
+### 1. Clone the Repository
 
-## Running the Service
+```bash
+git clone <your-repository-url>
+cd <your-project-directory>
+```
 
-You can run the service directly using your build tool or by executing the JAR file.
+---
 
-* **Using Maven:**
-    ```bash
-    mvn spring-boot:run
-    ```
-* **Using Gradle:**
-    ```bash
-    ./gradlew bootRun
-    ```
-* **Using JAR file:**
-    ```bash
-    java -jar target/user-service-*.jar
-    ```
-    *(Adjust JAR file name if necessary)*
+### 2. Run Required Docker Containers
 
-The service will typically start on port `8080` (check `application.properties` or `application.yml`).
+#### Start RabbitMQ
 
-## API Endpoints
+```bash
+docker run -d --hostname rabbitmq --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:management
+```
+- RabbitMQ UI: [http://localhost:15672](http://localhost:15672)
+- Default Credentials: `guest` / `guest`
 
-* ### Register User
-    * **Endpoint:** `POST /api/users/register`
-    * **Request Body:**
-        ```json
-        {
-          "username": "testuser",
-          "email": "test@example.com",
-          "password": "password123",
-          "firstName": "Test",
-          "lastName": "User"
-          // Add other relevant fields
-        }
-        ```
-    * **Response:**
-        * `201 Created`: User successfully registered. Returns the created user details (without password).
-        * `400 Bad Request`: Validation failed (e.g., invalid email format, missing fields). Response body includes validation errors.
+#### Start Keycloak
 
-* ### Get User Profile by ID
-    * **Endpoint:** `GET /api/users/{userId}`
-    * **Path Variable:** `userId` - The unique identifier of the user.
-    * **Response:**
-        * `200 OK`: Returns the user profile details (without sensitive info like password).
-            ```json
-            {
-              "id": "...", // User ID
-              "username": "testuser",
-              "email": "test@example.com",
-              "firstName": "Test",
-              "lastName": "User"
-              // Add other relevant fields
-            }
-            ```
-        * `404 Not Found`: User with the specified ID does not exist.
+```bash
+docker run -d --name keycloak -p 8181:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:latest start-dev
+```
+- Keycloak Admin Console: [http://localhost:8181](http://localhost:8181)
+- Default Credentials: `admin` / `admin`
+
+---
+
+### 3. Build and Run the Services
+
+#### Using Maven
+
+```bash
+mvn clean install
+mvn spring-boot:run
+```
+
+#### Using Gradle
+
+```bash
+./gradlew build
+./gradlew bootRun
+```
+
+✅ Make sure **Config Server** and **Eureka Server** are started before launching other services.
+
+---
+
+## Service Ports (Default)
+
+| Service | Port |
+|:--------|:----:|
+| Config Server | 8888 |
+| Eureka Server | 8761 |
+| API Gateway | 8080 |
+| User Service | 8082 |
+| AI Service | 8083 |
+| Activity Service | 8084 |
+| RabbitMQ Management | 15672 |
+| Keycloak | 8181 |
+
+---
+
+## Key Endpoints
+
+| Service | Method | Endpoint | Description |
+|:--------|:------:|:---------|:------------|
+| **User Service** | `POST` | `/api/users/register` | Register a new user |
+| **User Service** | `GET` | `/api/users/{userId}` | Get user profile |
+| **AI Service** | `POST` | `/api/ai/recommendation` | Generate AI fitness recommendation |
+| **Activity Service** | `POST` | `/api/activities` | Log fitness activities |
+
+---
+
+## Security
+
+- **API Gateway** secures all internal services.
+- **Keycloak** handles OAuth2 PKCE authentication and authorization.
+- **Microservices** validate tokens before processing requests.
+
+---
 
 ## Configuration
 
-* Basic configuration (server port, database connection for non-H2 DBs) can be found in `src/main/resources/application.properties` or `application.yml`.
-* For development, the service uses an H2 in-memory database by default.
+- **Spring Cloud Config Server** hosts shared `application.yml` or `application.properties`.
+- Services fetch their config dynamically on startup.
+- Example configurations:
+  - Database URLs
+  - RabbitMQ connections
+  - OAuth2 client details
 
-## Future Plans
+---
 
-This service is the first building block. Future development will involve adding more microservices for workouts, diet, AI recommendations, and implementing security (authentication/authorization).
+## Future Enhancements
+
+- Docker Compose setup for entire backend stack.
+- Deploy on Kubernetes (GKE, EKS, AKS).
+- Add Prometheus & Grafana for monitoring.
+- Expand AI Service with real-time learning from user data.
+- Notification Service for activity alerts and AI recommendations.
+
+---
+
+## Useful Links
+
+- RabbitMQ Management UI: [http://localhost:15672](http://localhost:15672)
+- Keycloak Admin Console: [http://localhost:8181](http://localhost:8181)
+- Eureka Dashboard: [http://localhost:8761](http://localhost:8761)
+
+---
+
+# 🚀 Let's Build a Smarter, Fitter Future Together!
