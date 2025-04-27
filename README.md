@@ -3,7 +3,11 @@
 This project contains the backend services for the **Fitness AI** application, designed using a microservices architecture. It includes user management, AI-powered fitness recommendations, activity tracking, centralized configuration, secure API gateway, and service discovery.
 
 ---
+## Architecture Diagram
 
+![Fitness App Architecture](./img.png)
+
+---
 ## Architecture Overview
 
 | Service             | Description                                                                              | Technologies                             |
